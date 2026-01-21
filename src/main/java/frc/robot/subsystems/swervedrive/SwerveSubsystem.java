@@ -6,6 +6,7 @@ package frc.robot.subsystems.swervedrive;
 
 import static edu.wpi.first.units.Units.Meter;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -27,6 +28,7 @@ import java.util.function.Supplier;
 import swervelib.SwerveController;
 import swervelib.SwerveDrive;
 import swervelib.SwerveDriveTest;
+import swervelib.SwerveModule;
 import swervelib.math.SwerveMath;
 import swervelib.parser.SwerveControllerConfiguration;
 import swervelib.parser.SwerveDriveConfiguration;
@@ -133,18 +135,25 @@ public class SwerveSubsystem extends SubsystemBase {
         .forEach(it -> it.setAngle(0.0)));
   }
 
-  public Command spinModulesTest() {
-    return run(() -> {
-      Arrays.asList(swerveDrive.getModules())
-          .forEach(it -> it.setAngle(it.getAngleMotor().getPosition() + 1));
+  String[] moduleNames = { "FrontLeft", "FrontRight", "BackLeft", "BackRight" };
 
-      swerveDrive.drive(new Translation2d(0, 0), 0, false, false);
-    }).until(() -> {
-      return swerveDrive.getModules()[0].getAngleMotor().getPosition() >= 360;
-    }).andThen(Commands.runOnce(() -> {
-      Arrays.asList(swerveDrive.getModules())
-          .forEach(it -> it.setAngle(0));
-    }));
+  public Command spinModuleTest(int module) {
+    SwerveModule swerveModule = swerveDrive.getModules()[module];
+    final double[] p = new double[2];
+    return runOnce(() -> {
+      p[0] = MathUtil.inputModulus(swerveModule.getAbsoluteEncoder().getAbsolutePosition(), 0, 360);
+    }).andThen(run(() -> {
+      swerveModule.getAngleMotor().setVoltage(5);
+    }).withTimeout(0.5).andThen(() -> {
+      p[1] = MathUtil.inputModulus(swerveModule.getAbsoluteEncoder().getAbsolutePosition(), 0, 360);
+      double raw = p[1] - p[0];
+      double dp = ((raw + 180) % 360) - 180;
+      SmartDashboard.putNumber("module" + moduleNames[module] + "AbsDelta", Math.signum(dp));
+    })).andThen(run(() -> {
+      swerveModule.getAngleMotor().setVoltage(5);
+    }).withTimeout(5)).finallyDo(() -> {
+      swerveModule.getAngleMotor().setVoltage(0);
+    });
   }
 
   public Command rotateFromNTCommand() {
@@ -162,7 +171,7 @@ public class SwerveSubsystem extends SubsystemBase {
   public Command driveForward() {
     return run(() -> {
       swerveDrive.drive(new Translation2d(1, 0), 0, false, false);
-    }).finallyDo(() -> swerveDrive.drive(new Translation2d(0, 0), 0, false, false));
+    }).withTimeout(5).finallyDo(() -> swerveDrive.drive(new Translation2d(0, 0), 0, false, false));
   }
 
   public Command driveStop() {

@@ -47,7 +47,10 @@ public class RobotContainer {
     drivebase.setDefaultCommand(drivebase.driveStop());
     SmartDashboard.putData("driveForward", drivebase.driveForward());
     SmartDashboard.putData("rotateModules", drivebase.rotateFromNTCommand());
-    SmartDashboard.putData("spinModules", drivebase.spinModulesTest());
+    SmartDashboard.putData("spinFrontLeft", drivebase.spinModuleTest(0));
+    SmartDashboard.putData("spinFrontRight", drivebase.spinModuleTest(1));
+    SmartDashboard.putData("spinBackLeft", drivebase.spinModuleTest(2));
+    SmartDashboard.putData("spinBackRight", drivebase.spinModuleTest(3));
     SmartDashboard.putNumber("angle", 0.0);
     SmartDashboard.putBoolean("ready", true);
   }
